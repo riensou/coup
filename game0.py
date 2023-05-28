@@ -3,8 +3,7 @@ from itertools import cycle
 
 class Game:
 
-    def __init__(self):
-        # Define the roles and their abilities
+    def __init__(self, num_players=4):
         self.roles = {
             'Duke': 'Tax',
             'Assassin': 'Assassinate',
@@ -12,18 +11,11 @@ class Game:
             'Ambassador': 'Exchange',
             'Contessa': None
         }
-
-        # Define the players (change as needed)
-        self.players = ['Player 1', 'Player 2', 'Player 3']
-        # Define the initial influence (number of character cards) for each player
+        self.players = [f"Player {num}" for num in range(1, num_players + 1)]
         self.player_influence = {player: 2 for player in self.players}
-        # Define the player's coins (change as needed)
         self.player_coins = {player: 2 for player in self.players}
-        # Define the deck of character cards
         self.deck = list(self.roles.keys()) * 3
-        # Shuffle the deck
         random.shuffle(self.deck)
-        # Deal two character cards to each player
         self.player_cards = {}
         if len(self.deck) >= len(self.players) * 2:
             for player in self.players:
@@ -31,23 +23,18 @@ class Game:
         else:
             print("Not enough cards in the deck to deal to each player.")
             exit()
-        # Define turn order
         self.players_turn = cycle(self.players)
 
-    # Function to get whose turn it is
     def next_turn(self):
         return next(self.players_turn)
 
-    # Function to display the current state of the game
     def display_game_state(self):
         print('--- Game State ---')
         for player in self.players:
             print(f'{player}: Influence={self.player_influence[player]}, Coins={self.player_coins[player]}, Cards={self.player_cards[player]}')
         print('-----------------')
 
-    # Simulate a player's turn
     def simulate_player_turn(self, player):
-        # Choose an action randomly for demonstration purposes
         possible_actions = ['Income', 'Foreign Aid', 'Tax', 'Exchange', 'Steal']
         if self.player_coins[player] >= 3:
             possible_actions.append('Assassinate')
@@ -76,7 +63,7 @@ class Game:
 
         elif action == 'Assassinate':
             # Choose a random target player to assassinate
-            remaining_players = [p for p in self.players if p != player or self.player_influence[p] == 0]  # Exclude the current player and those who have no influence
+            remaining_players = [p for p in self.players if p != player and self.player_influence[p] != 0]  # Exclude the current player and those who have no influence
             target_player = random.choice(remaining_players)
             print(f"Assassinating Player: {target_player}")
 
@@ -106,7 +93,7 @@ class Game:
 
         elif action == 'Steal':
             # Choose a random target player to steal from
-            remaining_players = [p for p in self.players if p != player or self.player_coins[p] == 0]  # Exclude the current player and those who have no money
+            remaining_players = [p for p in self.players if p != player and self.player_coins[p] != 0]  # Exclude the current player and those who have no money
             target_player = random.choice(remaining_players)
             print(f"Stealing from Player: {target_player}")
 
@@ -116,7 +103,7 @@ class Game:
 
         elif action == 'Coup':
             # Choose a random target player to coup
-            remaining_players = [p for p in self.players if p != player or self.player_influence[p] == 0]  # Exclude the current player and those who have no influence
+            remaining_players = [p for p in self.players if p != player and self.player_influence[p] != 0]  # Exclude the current player and those who have no influence
             target_player = random.choice(remaining_players)
             print(f"Couping Player: {target_player}")
 
