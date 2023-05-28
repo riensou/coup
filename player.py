@@ -1,3 +1,4 @@
+from utils import *
 
 class Player():
     def __init__(self, name, influence, coins, cards, funcs):
@@ -23,15 +24,15 @@ class Player():
         """
         return self.decide_fn(game_state, history)
     
-    def block(self, action, game_state, history):
+    def block(self, action, game_state, history, action_is_block=False):
         """
-        Return a block of the form (blocker, attempt_block, lie_or_counter) based on the game_state and action and the history of the game.
+        Return a block of the form (blocker, attempt_block, lie_or_counter) based on the action, game_state, and history of the game.
         
         blocker = this player (always)
         attempt_block = boolean value
         lie_or_counter = boolean value; True if calling the action a lie, False if claiming a counter role
         """
-        return self.block_fn(action, game_state, history)
+        return self.block_fn(action, game_state, history, action_is_block=action_is_block)
     
     def dispose(self, game_state, history):
         """
@@ -48,7 +49,7 @@ class Player():
 def random_decision(game_state, history):
     pass
 
-def random_block(action, game_state, history):
+def random_block(action, game_state, history, action_is_block=False):
     pass
 
 def random_dispose(game_state, history):
