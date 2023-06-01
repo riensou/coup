@@ -1,7 +1,10 @@
 ROLES = ['Duke', 'Assassin', 'Captain', 'Ambassador', 'Contessa']
 
-LIE_BLOCKABLE = {'Income': False, 'Foreign Aid': False, 'Tax': True, 'Steal': True, 'Coup': False, 'Assassinate': True, 'Exchange': True, 'Block': True}
-ROLE_BLOCKABLE = {'Income': True, 'Foreign Aid': True, 'Tax': False, 'Steal': True, 'Coup': False, 'Assassinate': True, 'Exchange': False, 'Block': False}
+LIE_BLOCKABLE = {'Income': False, 'Foreign Aid': False, 'Tax': True, 'Steal': True, 'Coup': False, 'Assassinate': True, 'Exchange': True, 'Role_Block': True, 'Lie_Block': False}
+ROLE_BLOCKABLE = {'Income': False, 'Foreign Aid': True, 'Tax': False, 'Steal': True, 'Coup': False, 'Assassinate': True, 'Exchange': False, 'Role_Block': False, 'Lie_Block': False}
+
+ACTION_SENDER = {'Tax': 'Duke', 'Assassinate': 'Assassin', 'Exchange': 'Ambassador', 'Steal': 'Captain'}
+ACTION_BLOCKER = {'Foreign Aid': ['Duke'], 'Steal': ['Ambassador', 'Captain'], 'Assassinate': ['Contessa']}
 
 # -- Coin Gain -- #
 def income(player_name, player_coins):
@@ -34,7 +37,7 @@ def lose_block(player_name, player_cards, card_idx, player_deaths):
 
 # -- Exchange -- #
 def exchange(player_name, player_cards, cards, cards_idxs, deck):
-    player_cards[player_name] = cards[cards_idxs]
+    player_cards[player_name] = [cards[idx] for idx in cards_idxs]
     for idx in cards_idxs:
         cards.pop(idx)
     deck += cards
@@ -49,7 +52,7 @@ def generate_all_action(current_player, players, player_coins, player_cards):
     type = the type of action 
     """
     p1 = current_player.name
-    other_players = [p2.name for p2 in players if p2.name != p1 and player_cards[p2.name] > 0]
+    other_players = [p2.name for p2 in players if p2.name != p1 and len(player_cards[p2.name]) > 0]
 
     possible_actions = []
 
@@ -66,7 +69,7 @@ def generate_all_action(current_player, players, player_coins, player_cards):
 
     return possible_actions
 
-def generate_all_blocks(player, action):
+def generate_all_blocks(player_name, action):
     """
     Return all possible blocks of the form (p1, block?, lie or counter) where
 
@@ -74,7 +77,7 @@ def generate_all_blocks(player, action):
     block? = boolean whether player chose to block
     lie or counter = True if player calls a lie, or False if player claims a role to block
     """
-    p1 = player.name
+    p1 = player_name
 
     possible_blocks = [(p1, False, None)]
 
@@ -85,5 +88,10 @@ def generate_all_blocks(player, action):
         possible_blocks += [(p1, True, True)]
 
     return possible_blocks
-    
-    
+
+# -- Validate Blocks -- #
+def did_action_lie(type, sender_cards):
+    return ACTION_SENDER[type] in sender_cards
+
+def did_block_1_lie(type, blocker_cards):
+    return bool(set(ACTION_BLOCKER[type]).intersection(set(blocker_cards)))

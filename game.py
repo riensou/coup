@@ -45,34 +45,49 @@ class Game():
             if potential_block_1[1]:
                 block_1 = potential_block_1
                 break
-
-        for player in [p for p in players if p.name != block_1[0].name]:
-            potential_block_2 = player.block(block_1, self.game_state, self.history, action_is_block=True)
-            if potential_block_2[1]:
-                block_2 = potential_block_2
-                break
+        
+        if block_1[0]:
+            for player in [p for p in players if p.name != block_1[0]]:
+                potential_block_2 = player.block(block_1, self.game_state, self.history, action_is_block=True)
+                if potential_block_2[1]:
+                    block_2 = potential_block_2
+                    break
 
         turn = (action, block_1, block_2)
         self.history.append((self.game_state, turn))
-        self.apply_game_logic(turn)
+        self.apply_game_logic(turn, players, player_cards, player_deaths)
 
-    def apply_game_logic(self, turn):
+    def apply_game_logic(self, turn, players, player_cards, player_deaths):
         action, block_1, block_2 = turn
+
+        print('DEBUG:', action, block_1, block_2)
+
+        type = action[2]
 
         if block_1[1]:
             if block_2[1]:
-                pass ###
+                blocker_cards = player_cards[block_1[0]]
+                if did_block_1_lie(type, blocker_cards):
+                    card_idx = [p for p in players if p.name == block_1[0]][0].dispose(self.game_state, self.history)
+                    lose_block(block_1[0], player_cards, card_idx, player_deaths)
+                    self.take_action(action)
+                else:
+                    card_idx = [p for p in players if p.name == block_2[0]][0].dispose(self.game_state, self.history)
+                    lose_block(block_2[0], player_cards, card_idx, player_deaths)
             else:
                 if block_1[2]:
-                    pass ###
+                    sender_cards = player_cards[action[0]]
+                    if did_action_lie(type, sender_cards):
+                        card_idx = [p for p in players if p.name == action[0]][0].dispose(self.game_state, self.history)
+                        lose_block(action[0], player_cards, card_idx, player_deaths)
+                    else:
+                        card_idx = [p for p in players if p.name == block_1[0]][0].dispose(self.game_state, self.history)
+                        lose_block(block_1[0], player_cards, card_idx, player_deaths)
+                        self.take_action(action)
                 else:
                     return
         else:
             self.take_action(action)
-
-
-
-    
 
     def take_action(self, action):
         players, deck, player_cards, player_deaths, player_coins, current_player = self.unpack_gamestate()
@@ -96,4 +111,4 @@ class Game():
             cards = player_cards[current_player.name].copy() + [deck.pop(), deck.pop()]
             cards_idxs = current_player.keep(cards, self.game_state, self.history)
             assert len(cards_idxs) == len(player_cards[player1_name])
-            exchange(player1_name, player_cards, cards, player_cards, cards_idxs, deck)
+            exchange(player1_name, player_cards, cards, cards_idxs, deck)
