@@ -1,10 +1,13 @@
 from utils import *
 import random
 
+# BUGS: payments might not go through if an action is blocked, other edge cases might be weird and still need to be checked
+
 class Game():
-    def __init__(self, players):
+    def __init__(self, players, debug=False):
         self.game_state = self.initial_gamestate(players)
         self.history = []
+        self.debug = debug
 
     def initial_gamestate(self, players):
         assert len(players) < 6
@@ -60,7 +63,11 @@ class Game():
     def apply_game_logic(self, turn, players, player_cards, player_deaths):
         action, block_1, block_2 = turn
 
-        print('DEBUG:', action, block_1, block_2)
+        if self.debug:
+            print('DEBUG:', action, block_1, block_2)
+            print('DEBUG:', 'Sender Cards:', player_cards[action[0]])
+            if block_1[0]:
+                print('DEBUG:', 'Blocker Cards:', player_cards[block_1[0]])
 
         type = action[2]
 
@@ -84,10 +91,10 @@ class Game():
                         card_idx = [p for p in players if p.name == block_1[0]][0].dispose(self.game_state, self.history)
                         lose_block(block_1[0], player_cards, card_idx, player_deaths)
                         self.take_action(action)
-                else:
-                    return
         else:
             self.take_action(action)
+
+        self.update_next_player()
 
     def take_action(self, action):
         players, deck, player_cards, player_deaths, player_coins, current_player = self.unpack_gamestate()
@@ -104,7 +111,7 @@ class Game():
         elif type == 'Coup':
             card_idx = [p for p in players if p.name == player2_name][0].dispose(self.game_state, self.history)
             coup(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths)
-        elif type == 'Assassinate':
+        elif type == 'Assassinate' and len(player_cards[player2_name]) > 0:
             card_idx = [p for p in players if p.name == player2_name][0].dispose(self.game_state, self.history)
             assassinate(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths)
         elif type == 'Exchange':
@@ -112,3 +119,11 @@ class Game():
             cards_idxs = current_player.keep(cards, self.game_state, self.history)
             assert len(cards_idxs) == len(player_cards[player1_name])
             exchange(player1_name, player_cards, cards, cards_idxs, deck)
+
+    def update_next_player(self):
+        self.game_state['players'] = self.game_state['players'][1:] + [self.game_state['players'][0]]
+        self.game_state['players'] = [p for p in self.game_state['players'] if len(self.game_state['player_cards'][p.name]) > 0]
+        self.game_state['current_player'] = self.game_state['players'][0]
+
+    def toggle_debug(self):
+        self.debug = not self.debug

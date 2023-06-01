@@ -17,8 +17,8 @@ def tax(player_name, player_coins):
     player_coins[player_name] += 3
 
 def steal(player1_name, player2_name, player_coins):
-    player_coins[player1_name] += 2
-    player_coins[player2_name] -= 2
+    player_coins[player1_name] += min(player_coins[player2_name], 2)
+    player_coins[player2_name] -= min(player_coins[player2_name], 2)
 
 # -- Card Loss -- #
 def coup(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths):
@@ -39,7 +39,8 @@ def lose_block(player_name, player_cards, card_idx, player_deaths):
 def exchange(player_name, player_cards, cards, cards_idxs, deck):
     player_cards[player_name] = [cards[idx] for idx in cards_idxs]
     for idx in cards_idxs:
-        cards.pop(idx)
+        cards[idx] = None
+    cards = [c for c in cards if c != None]
     deck += cards
 
 # -- Generate Moves -- #
@@ -91,7 +92,7 @@ def generate_all_blocks(player_name, action):
 
 # -- Validate Blocks -- #
 def did_action_lie(type, sender_cards):
-    return ACTION_SENDER[type] in sender_cards
+    return not ACTION_SENDER[type] in sender_cards
 
 def did_block_1_lie(type, blocker_cards):
-    return bool(set(ACTION_BLOCKER[type]).intersection(set(blocker_cards)))
+    return not bool(set(ACTION_BLOCKER[type]).intersection(set(blocker_cards)))

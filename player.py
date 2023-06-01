@@ -45,6 +45,8 @@ class Player():
         """
         return self.keep_fn(cards, game_state, history, self.name)
     
+
+# -- Random Ronald -- #
 def random_decision(game_state, history, name):
     return random.choice(generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards']))
 
@@ -63,3 +65,88 @@ def random_keep(cards, game_state, history, name):
     return random.sample(list(range(len(cards))), k=len(cards)-2)
 
 RANDOM_FUNCS = {'decision_fn': random_decision, 'block_fn': random_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+
+# -- Truth Teller Tim -- #
+def truth_decision(game_state, history, name):
+    player_cards = game_state['player_cards'][name]
+    possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
+    truth_actions = [action for action in possible_actions if action[2] not in ACTION_SENDER.keys() or ACTION_SENDER[action[2]] in player_cards]
+    return random.choice(truth_actions)
+
+def truth_block(action, game_state, history, name, action_is_block=False):
+    player_cards = game_state['player_cards'][name]
+    if action_is_block:
+        return (name, False, None)
+    else:
+        if ROLE_BLOCKABLE[action[2]] and not did_block_1_lie(action[2], player_cards):
+            return (name, True, False)
+        else:
+            return (name, False, None)
+
+TRUTH_FUNCS = {'decision_fn': truth_decision, 'block_fn': truth_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+
+# -- User Ulysses -- #
+def user_decision(game_state, history, name):
+    print("It's your turn, {}".format(name))
+    print("Available actions:")
+    possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
+    for i, action in enumerate(possible_actions):
+        print("{}. {}".format(i + 1, action))
+    
+    while True:
+        choice = input("Choose an action (enter the number): ")
+        try:
+            index = int(choice) - 1
+            if index >= 0 and index < len(possible_actions):
+                return possible_actions[index]
+        except ValueError:
+            pass
+
+        print("Invalid choice. Please try again.")
+
+def user_block(action, game_state, history, name, action_is_block=False): ### BUGGED
+    print("{} has taken the action: {}".format(action[0], action[2]))
+    print("Your cards: {}".format(game_state['player_cards'][name]))
+    print("Do you want to block? (Y/N): ")
+    while True:
+        choice = input().lower()
+        if choice == 'y':
+            if action_is_block:
+                return (name, True, True)
+            else:
+                return (name, True, False)
+        elif choice == 'n':
+            return (name, False, None)
+        else:
+            print("Invalid choice. Please enter Y or N.")
+
+def user_dispose(game_state, history, name):
+    print("Your cards: {}".format(game_state['player_cards'][name]))
+    print("Choose a card to dispose (enter the index): ")
+    while True:
+        choice = input()
+        try:
+            index = int(choice)
+            if index >= 0 and index < len(game_state['player_cards'][name]):
+                return index
+        except ValueError:
+            pass
+
+        print("Invalid choice. Please try again.")
+
+def user_keep(cards, game_state, history, name):
+    print("Your cards: {}".format(cards))
+    print("Choose the indices of the cards to keep (enter as comma-separated values): ")
+    while True:
+        choice = input()
+        indices = [int(idx) for idx in choice.split(",") if idx.strip().isdigit()]
+        if len(indices) == len(game_state['player_cards'][name]) and all(idx >= 0 and idx < len(cards) for idx in indices):
+            return indices
+
+        print("Invalid choice. Please try again.")
+
+USER_FUNCS = {'decision_fn': user_decision, 'block_fn': user_block, 'dispose_fn': user_dispose, 'keep_fn': user_keep}
+
+# -- Heuristics Harry -- #
+
+# -- Neural Network Nancy -- #
