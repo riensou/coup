@@ -36,7 +36,7 @@ class Game():
     
     def simulate_turn(self):
         players, deck, player_cards, player_deaths, player_coins, current_player = self.unpack_gamestate()
-        action, block_1, block_2 = None, None, None
+        action, block_1, block_2 = (None, None, None), (None, None, None), (None, None, None)
 
         action = current_player.decision(self.game_state, self.history)
 
@@ -59,11 +59,22 @@ class Game():
     def apply_game_logic(self, turn):
         action, block_1, block_2 = turn
 
+        if block_1[1]:
+            if block_2[1]:
+                pass ###
+            else:
+                if block_1[2]:
+                    pass ###
+                else:
+                    return
+        else:
+            self.take_action(action)
+
 
 
     
 
-    def take_action(self, action, cards=[], cards_idxs=[]):
+    def take_action(self, action):
         players, deck, player_cards, player_deaths, player_coins, current_player = self.unpack_gamestate()
         player1_name, player2_name, type = action
 
@@ -76,11 +87,13 @@ class Game():
         elif type == 'Steal':
             steal(player1_name, player2_name, player_coins)
         elif type == 'Coup':
-            assert len(cards_idxs) == 1
-            coup(player1_name, player2_name, player_coins, player_cards, cards_idxs, player_deaths)
+            card_idx = [p for p in players if p.name == player2_name][0].dispose(self.game_state, self.history)
+            coup(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths)
         elif type == 'Assassinate':
-            assert len(cards_idxs) == 1
-            assassinate(player1_name, player2_name, player_coins, player_cards, cards_idxs, player_deaths)
+            card_idx = [p for p in players if p.name == player2_name][0].dispose(self.game_state, self.history)
+            assassinate(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths)
         elif type == 'Exchange':
+            cards = player_cards[current_player.name].copy() + [deck.pop(), deck.pop()]
+            cards_idxs = current_player.keep(cards, self.game_state, self.history)
             assert len(cards_idxs) == len(player_cards[player1_name])
             exchange(player1_name, player_cards, cards, player_cards, cards_idxs, deck)

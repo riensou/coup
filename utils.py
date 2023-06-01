@@ -20,16 +20,16 @@ def steal(player1_name, player2_name, player_coins):
 # -- Card Loss -- #
 def coup(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths):
     player_coins[player1_name] -= 7
-    lost_card = player_cards[player2_name].pop(card_idx[0])
-    player_deaths[player1_name].append(lost_card)
+    lost_card = player_cards[player2_name].pop(card_idx)
+    player_deaths[player2_name].append(lost_card)
 
 def assassinate(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths):
     player_coins[player1_name] -= 3
-    lost_card = player_cards[player2_name].pop(card_idx[0])
-    player_deaths[player1_name].append(lost_card)
+    lost_card = player_cards[player2_name].pop(card_idx)
+    player_deaths[player2_name].append(lost_card)
 
 def lose_block(player_name, player_cards, card_idx, player_deaths):
-    lost_card = player_cards[player_name].pop(card_idx[0])
+    lost_card = player_cards[player_name].pop(card_idx)
     player_deaths[player_name].append(lost_card)
 
 # -- Exchange -- #
@@ -44,7 +44,7 @@ def generate_all_action(current_player, players, player_coins, player_cards):
     """
     Return all possible actions of the form (p1, p2, type) where
 
-    p1 = current_player
+    p1 = current player
     p2 = any other player that is still alive
     type = the type of action 
     """
@@ -66,8 +66,15 @@ def generate_all_action(current_player, players, player_coins, player_cards):
 
     return possible_actions
 
-def generate_all_blocks(current_player, action):
-    p1 = current_player.name
+def generate_all_blocks(player, action):
+    """
+    Return all possible blocks of the form (p1, block?, lie or counter) where
+
+    p1 = player
+    block? = boolean whether player chose to block
+    lie or counter = True if player calls a lie, or False if player claims a role to block
+    """
+    p1 = player.name
 
     possible_blocks = [(p1, False, None)]
 
