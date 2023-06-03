@@ -58,16 +58,14 @@ class Game():
 
         turn = (action, block_1, block_2)
         self.history.append((self.game_state, turn))
+
+        self.display_game_state()
+        self.display_turn(turn)
+
         self.apply_game_logic(turn, players, player_cards, player_deaths)
 
     def apply_game_logic(self, turn, players, player_cards, player_deaths):
         action, block_1, block_2 = turn
-
-        if self.debug:
-            print('DEBUG:', action, block_1, block_2)
-            print('DEBUG:', 'Sender Cards:', player_cards[action[0]])
-            if block_1[0]:
-                print('DEBUG:', 'Blocker Cards:', player_cards[block_1[0]])
 
         type = action[2]
 
@@ -124,6 +122,28 @@ class Game():
         self.game_state['players'] = self.game_state['players'][1:] + [self.game_state['players'][0]]
         self.game_state['players'] = [p for p in self.game_state['players'] if len(self.game_state['player_cards'][p.name]) > 0]
         self.game_state['current_player'] = self.game_state['players'][0]
+
+    def display_game_state(self):
+        players, deck, player_cards, player_deaths, player_coins, current_player = self.unpack_gamestate()
+
+        print("----- COUP -----")
+        if self.debug:
+            for p in player_cards:
+                print(p, player_cards[p])
+        print("player_coins:", player_coins)
+        print("player_deaths:", player_deaths)
+        print("current_player:", current_player.name)
+
+    def display_turn(self, turn):
+        action, block_1, block_2 = turn
+        print("{} has taken the action {} on {}".format(action[0], action[2], action[1]))
+        if block_1[1]:
+            if block_1[2]:
+                print("{} blocks by calling bluff.".format(block_1[0]))
+            else:
+                print("{} blocks by counter action.".format(block_1[0]))
+        if block_2[1]:
+            print("{} blocks by calling bluff.".format(block_2[0]))
 
     def toggle_debug(self):
         self.debug = not self.debug

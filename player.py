@@ -104,21 +104,37 @@ def user_decision(game_state, history, name):
 
         print("Invalid choice. Please try again.")
 
-def user_block(action, game_state, history, name, action_is_block=False): ### BUGGED
-    print("{} has taken the action: {}".format(action[0], action[2]))
-    print("Your cards: {}".format(game_state['player_cards'][name]))
-    print("Do you want to block? (Y/N): ")
-    while True:
-        choice = input().lower()
-        if choice == 'y':
-            if action_is_block:
-                return (name, True, True)
+def user_block(action, game_state, history, name, action_is_block=False): 
+    if not action_is_block:
+        print("Do you want to block? (Y/N): ")
+        while True:
+            choice = input().lower()
+            if choice == 'y':
+                print("Do you block by calling bluff or counter action (0/1): ")
+                while True:
+                    choice = input()
+                    if choice == '0':
+                        return (name, True, True)
+                    elif choice == '1':
+                        return (name, True, False)
+                    else:
+                        print("Invalid choice. Please enter 0 or 1.")
+            elif choice == 'n':
+                return (name, False, None)
             else:
-                return (name, True, False)
-        elif choice == 'n':
-            return (name, False, None)
-        else:
-            print("Invalid choice. Please enter Y or N.")
+                print("Invalid choice. Please enter Y or N.")
+    elif not action[2]:
+        print("Do you want to call their bluff? (Y/N)")
+        while True:
+            choice = input().lower()
+            if choice == 'y':
+                return (name, True, True)
+            elif choice == 'n':
+                return (name, False, None)
+            else:
+                print("Invalid choice. Please enter Y or N.")
+    else:     
+        return (name, False, None)
 
 def user_dispose(game_state, history, name):
     print("Your cards: {}".format(game_state['player_cards'][name]))
