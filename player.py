@@ -93,7 +93,43 @@ def greedy_decision(game_state, history, name):
     greedy_actions = [action for action in possible_actions if action[2] == 'Income' or action[2] == 'Foreign Aid' or action[2] == 'Tax' or action[2] == 'Assassinate' or action[2] == 'Coup']
     return random.choice(greedy_actions)
 
-GREEDY_FUNCS = {'decision_fn': greedy_decision, 'block_fn': truth_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+def greedy_block(action, game_state, history, name, action_is_block=False):
+    player_cards = game_state['player_cards'][name]
+    if action_is_block:
+        return (name, False, None)
+    else:
+        if action[1] == name:
+            if ROLE_BLOCKABLE[action[2]] and not did_block_1_lie(action[2], player_cards):
+                return (name, True, False)
+            elif LIE_BLOCKABLE[action[2]]:
+                return (name, True, True)
+            elif ROLE_BLOCKABLE[action[2]]:
+                return (name, True, False)
+        return (name, False, None)
+
+GREEDY_FUNCS = {'decision_fn': greedy_decision, 'block_fn': greedy_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+
+# -- Income Isabel -- #
+
+def income_decision(game_state, history, name):
+    player_cards = game_state['player_cards'][name]
+    possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
+    income_actions = [action for action in possible_actions if action[2] == 'Income' or action[2] == 'Assassinate']
+    if income_actions:
+        return random.choice(income_actions)
+    else:
+        return random.choice(possible_actions)
+    
+def income_block(action, game_state, history, name, action_is_block=False):
+    player_cards = game_state['player_cards'][name]
+    if action_is_block:
+        return (name, False, None)
+    else:
+        if action[1] == name and ROLE_BLOCKABLE[action[2]] and not did_block_1_lie(action[2], player_cards):
+            return (name, True, False)
+    return (name, False, None)
+
+INCOME_FUNCS = {'decision_fn': income_decision, 'block_fn': income_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
 
 # -- User Ulysses -- #
 def user_decision(game_state, history, name):
