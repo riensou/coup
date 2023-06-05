@@ -59,8 +59,9 @@ class Game():
         turn = (action, block_1, block_2)
         self.history.append((self.game_state, turn))
 
-        self.display_game_state()
-        self.display_turn(turn)
+        if self.debug:
+            self.display_game_state()
+            self.display_turn(turn)
 
         self.apply_game_logic(turn, players, player_cards, player_deaths)
 

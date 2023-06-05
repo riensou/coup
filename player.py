@@ -85,6 +85,16 @@ def truth_block(action, game_state, history, name, action_is_block=False):
 
 TRUTH_FUNCS = {'decision_fn': truth_decision, 'block_fn': truth_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
 
+# -- Greedy Garrett -- #
+
+def greedy_decision(game_state, history, name):
+    player_cards = game_state['player_cards'][name]
+    possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
+    greedy_actions = [action for action in possible_actions if action[2] == 'Income' or action[2] == 'Foreign Aid' or action[2] == 'Tax' or action[2] == 'Assassinate' or action[2] == 'Coup']
+    return random.choice(greedy_actions)
+
+GREEDY_FUNCS = {'decision_fn': greedy_decision, 'block_fn': truth_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+
 # -- User Ulysses -- #
 def user_decision(game_state, history, name):
     print("It's your turn, {}".format(name))
@@ -166,3 +176,6 @@ USER_FUNCS = {'decision_fn': user_decision, 'block_fn': user_block, 'dispose_fn'
 # -- Heuristics Harry -- #
 
 # -- Neural Network Nancy -- #
+
+
+# -- GPT Gerald -- #
