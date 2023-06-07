@@ -4,7 +4,6 @@ import random
 
 class Player():
     def __init__(self, name, funcs):
-        # basic player stats
         self.name = name
 
         # player logic
@@ -208,10 +207,3 @@ def user_keep(cards, game_state, history, name):
         print("Invalid choice. Please try again.")
 
 USER_FUNCS = {'decision_fn': user_decision, 'block_fn': user_block, 'dispose_fn': user_dispose, 'keep_fn': user_keep}
-
-# -- Heuristics Harry -- #
-
-# -- Neural Network Nancy -- #
-
-
-# -- GPT Gerald -- #
