@@ -6,19 +6,19 @@ For a description of the rules, click [here](https://www.ultraboardgames.com/cou
 
 
 **Player Descriptions:**
-1. Random Ronald
+1. Random
 - all logic functions make completely random choices
 
-2. Truth Teller Tim
+2. Truth Teller
 - only chooses moves that never bluff based on its own cards
 
-3. User Ulysses
+3. User
 - chooses moves based on user input to the terminal
 
-4. Heuristics Harry
-- WIP
+4. Income
+- always takes income or assinates/coups whenever possible
 
-5. Neural Network Nancy
+5. Neural Network
 - WIP
 
 
