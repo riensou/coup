@@ -1,4 +1,4 @@
-![coup](https://github.com/riensou/coup/assets/90002238/014734d5-452b-4fe3-bbe6-badca2f2d625)
+![coup]([https://github.com/riensou/coup/assets/90002238/014734d5-452b-4fe3-bbe6-badca2f2d625](https://github.com/riensou/coup/blob/main/assets/coup.jpeg))
 
 Python implentation of the popular bluffing card game, _Coup_.
 
