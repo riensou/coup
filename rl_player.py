@@ -76,8 +76,6 @@ def output_to_action(output, game_state, name, i_to_type=I_TO_TYPE):
 
     return (name, reciever, type)
 
-
-
 class QLearningAgent:
     def __init__(self, state_dim, action_dim, learning_rate, gamma):
         self.state_dim = state_dim
@@ -86,20 +84,17 @@ class QLearningAgent:
         self.gamma = gamma
 
         self.model = QNetwork(state_dim, action_dim)
-
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
-
         self.replay_buffer = deque(maxlen=10000)
 
-    def get_action(self, game_state, history, name, epsilon):
-        # Convert the game state and history to the input tensor
+    def get_action(self, state, name, epsilon):
+        game_state, history = state[0], state[1]
+
         state = state_to_input(game_state, history, name)
         state_tensor = torch.tensor(state, dtype=torch.float32)
 
-        # Pass the state through the Q-network to get the action values
-        action_values = self.model(state_tensor)
+        action_values = self.model.forward(state_tensor)
 
-        # Use epsilon-greedy strategy for action selection
         if torch.rand(1) < epsilon:
             possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
             action = random.choice(possible_actions)
@@ -109,14 +104,16 @@ class QLearningAgent:
         return action
 
 
-    def update(self, game_state, history, next_game_state, next_history, name, action, reward, done):
-        # Convert the states and actions to tensors
-        state_tensor = state_to_input(game_state, history, name)  # Convert current state to input tensor
-        next_state_tensor = state_to_input(next_game_state, next_history, name)  # Convert next state to input tensor
+    def update(self, state, next_state, name, action, reward, done):
+        game_state, history = state[0], state[1]
+        next_game_state, next_history = next_state[0], next_state[1]
+
+        state_tensor = state_to_input(game_state, history, name)  
+        next_state_tensor = state_to_input(next_game_state, next_history, name)  
 
         # Pass the states through the Q-network to get the predicted Q-values
-        predicted_values = self.model(state_tensor)
-        predicted_next_values = self.model(next_state_tensor)
+        predicted_values = self.model.forward(state_tensor)
+        predicted_next_values = self.model.forward(next_state_tensor)
 
         # Get the Q-value of the chosen action
         q_value = predicted_values[action]
@@ -136,43 +133,61 @@ class QLearningAgent:
         loss.backward()
         self.optimizer.step()
 
-    def replay_experience(self, batch_size):
+    def replay_experience(self, batch_size, name):
         # Sample a batch of experiences from the replay buffer
         batch = random.sample(self.replay_buffer, batch_size)
 
         # Update the Q-network with the sampled experiences
         for experience in batch:
             state, action, reward, next_state, done = experience
-            self.update(state, action, reward, next_state, done)
+            self.update(state, next_state, name, action, reward, done)
 
     def add_experience(self, state, action, reward, next_state, done):
         # Add the experience to the replay buffer
         self.replay_buffer.append((state, action, reward, next_state, done))
 
-    def save_model(self, path):
-        # Save the Q-network model
-        torch.save(self.model.state_dict(), path)
-
-    def load_model(self, path):
-        # Load the Q-network model
-        self.model.load_state_dict(torch.load(path))
-        self.model.eval()
-
-# Define the Q-network class
 class QNetwork(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(QNetwork, self).__init__()
 
-        # Define the network layers
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, action_dim)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
-        x = self
+        x = self.fc2(x)
+        return x
 
+class Environment():
+    def __init__(self):
+        pass
 
+    def step(self, action):
+        """
+        Return (next_state, reward, done).
+        
+        next_state = (next_game_state, next_history)
+        reward = TBD
+        done = True if agent wins / loses
+        """
+        pass
 
+    def calculate_reward(self, state, next_state):
+        """
+        Calculate the reward from going from state to next_state. 
 
+        + 1 per change in amount of owned coins
+        + 10 per change in amount of opponent's cards
+        + 5 if 2 of the same card is diversified via exchange
+        + 100 if win
+        - 100 if lose
+        """
+        pass
 
+    def reset(self):
+        """
+        Reset the game to an initial game_state and clear the history. Return the initial_state.
 
+        initial_state = (initial_game_state, initial_history)
+        """
+        pass
