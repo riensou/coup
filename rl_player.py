@@ -179,9 +179,20 @@ class QLearningAgent:
         # Add the experience to the replay buffer
         self.replay_buffer.append((state, action, reward, next_state, done))
 
+    def save_model(self, path):
+        torch.save(self.model.state_dict(), path)
+
+def load_model(n, path):
+    model = QNetwork(10 + 11 * n, 1 + 3 * n)
+    model.load_state_dict(torch.load(path))
+    model.eval()
+    return model
+
 class QNetwork(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(QNetwork, self).__init__()
+        self.state_dim = state_dim
+        self.action_dim = action_dim
 
         self.fc1 = nn.Linear(state_dim, 64)
         self.fc2 = nn.Linear(64, action_dim)
@@ -191,8 +202,17 @@ class QNetwork(nn.Module):
         x = self.fc2(x)
         return x
 
-def rl_decision(game_state, history, name):
+def rltraining_decision(game_state, history, name):
     return rl_action
+
+def get_rl_decision(model, name):
+    agent = QLearningAgent(model.state_dim, model.action_dim, 0, 1, name)
+    agent.model = model
+    agent.model.eval()
+    def rl_decision(game_state, history, name):
+        action = agent.get_action((game_state, history), name, -1)
+        return action
+    return rl_decision
 
 class Environment():
     def __init__(self, name, players):
@@ -234,7 +254,7 @@ class Environment():
 
         return (next_state, reward, done)
 
-    def calculate_reward(self, state, next_state, COIN_VALUE=1, CARD_VALUE=10, CARD_DIVERSITY_VALUE=5, WIN_VALUE=200):
+    def calculate_reward(self, state, next_state, COIN_VALUE=1, CARD_VALUE=10, CARD_DIVERSITY_VALUE=5, WIN_VALUE=100):
         """
         Calculate the reward from going from state to next_state. 
 
