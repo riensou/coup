@@ -9,24 +9,32 @@ For a description of the rules, click [here](https://www.ultraboardgames.com/cou
 **Player Descriptions:**
 1. Random
 - all logic functions make completely random choices
+- uses random_dispose, random_keep
 
 2. Truth Teller
 - only chooses moves that never bluff based on its own cards
+- uses random_dispose, random_keep
 
 3. User
 - chooses moves based on user input to the terminal
 
 4. Income
 - always takes income or assinates/coups whenever possible
+- uses random_dispose, random_keep
 
 5. Neural Network
-- WIP
+- utilizes Q-learning with a neural network to learn the best decision_fn
+- uses income_block, random_dispose, random_keep
 
 
 **Running the program:**
 1. Create player objects using the various FUNCS from player.py
 2. Put all players into the players list and create the game object.
 3. Run python3 game.py
+
+
+**Model Files Format:**
+"{number of players}-{number of episodes trained on}-{types of opponents}"
 
 
 **Missing Features / Bugs:**
