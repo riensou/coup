@@ -6,8 +6,10 @@ from collections import deque
 import random
 
 from player import *
+from game import *
 
 I_TO_TYPE = {0: 'Income', 1: 'Foreign Aid', 2: 'Tax', 3: 'Steal', 4: 'Coup', 5: 'Assassinate', 6: 'Exchange'}
+TYPE_TO_I = {'Income': 0, 'Foreign Aid': 1, 'Tax': 2, 'Steal': 3, 'Coup': 4, 'Assassinate': 5, 'Exchange': 6}
 ROLE_TO_I = {'Duke' : 0, 'Assassin': 1, 'Captain': 2, 'Ambassador': 3, 'Contessa': 4}
 
 def state_to_input(game_state, history, name, role_to_i=ROLE_TO_I):
@@ -24,7 +26,7 @@ def state_to_input(game_state, history, name, role_to_i=ROLE_TO_I):
     players, deck, player_cards, player_deaths, player_coins, current_player = game_state['players'], game_state['deck'], game_state['player_cards'], game_state['player_deaths'], game_state['player_coins'], game_state['current_player']
     our_cards = player_cards[name]
     n = len(player_deaths.keys())
-    player_names = player_deaths.keys()
+    player_names = list(player_deaths.keys())
 
     # initialize input of zeros
     input = torch.zeros(10 + 11 * n)
@@ -60,28 +62,45 @@ def output_to_action(output, game_state, name, i_to_type=I_TO_TYPE):
     The next n entries of output represent the choice of reciever.
     """
     possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
-    i_to_reciever = {i : p for i, p in enumerate(game_state['player_deaths'].keys())}
+    i_to_reciever = {i + 7 : p for i, p in enumerate(game_state['player_deaths'].keys())}
 
     possible_types = set([action[2] for action in possible_actions])
     for i in range(7):
         if i_to_type[i] not in possible_types:
             output[i] = -1 * float('inf') # might need to make this a PyTorch -infinity
-    type = i_to_type(torch.argmax(output[:7]))
+    type = i_to_type[torch.argmax(output[:7]).item()]
 
     possible_recievers = set([action[1] for action in possible_actions if action[2] == type])
     for i in range(7, len(output)): # might need to change len(output) to be a PyTorch command
         if i_to_reciever[i] not in possible_recievers:
             output[i] = -1 * float('inf') # might need to make this a PyTorch -infinity
-    reciever = i_to_reciever(torch.argmax(output[7:]))
+    reciever = i_to_reciever[torch.argmax(output[7:]).item() + 7]
 
     return (name, reciever, type)
 
+def action_to_output(action, game_state):
+    """
+    Return the simplest one-hot-encoding of the action.
+
+    return output, which is a Tensor of shape (n + 7) where n = #players
+    """
+    reciever_to_i = {p : i + 7 for i, p in enumerate(game_state['player_deaths'].keys())}
+    n = len(game_state['player_deaths'].keys())
+
+    output = torch.zeros(7 + n)
+
+    output[TYPE_TO_I[action[2]]] = 1
+    output[reciever_to_i[action[1]]] = 1
+
+    return output
+
 class QLearningAgent:
-    def __init__(self, state_dim, action_dim, learning_rate, gamma):
+    def __init__(self, state_dim, action_dim, learning_rate, gamma, name):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.learning_rate = learning_rate
         self.gamma = gamma
+        self.name = name
 
         self.model = QNetwork(state_dim, action_dim)
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
@@ -91,9 +110,8 @@ class QLearningAgent:
         game_state, history = state[0], state[1]
 
         state = state_to_input(game_state, history, name)
-        state_tensor = torch.tensor(state, dtype=torch.float32)
 
-        action_values = self.model.forward(state_tensor)
+        action_values = self.model.forward(state)
 
         if torch.rand(1) < epsilon:
             possible_actions = generate_all_action(game_state['current_player'], game_state['players'], game_state['player_coins'], game_state['player_cards'])
@@ -116,7 +134,7 @@ class QLearningAgent:
         predicted_next_values = self.model.forward(next_state_tensor)
 
         # Get the Q-value of the chosen action
-        q_value = predicted_values[action]
+        q_value = predicted_values[action_to_output(action, game_state)]
 
         # Calculate the target Q-value using the Bellman equation
         if done:
@@ -158,31 +176,84 @@ class QNetwork(nn.Module):
         x = self.fc2(x)
         return x
 
+def rl_decision(game_state, history, name):
+    return rl_action
+
+RL_FUNCS = {'decision_fn': rl_decision, 'block_fn': income_block, 'dispose_fn': random_dispose, 'keep_fn': random_keep}
+
 class Environment():
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.name = name
+        
+        players = [Player('Player 1', RL_FUNCS), Player('Player 2', RANDOM_FUNCS), Player('Player 3', RANDOM_FUNCS)]
+        self.game = Game(players)
+
 
     def step(self, action):
         """
         Return (next_state, reward, done).
         
         next_state = (next_game_state, next_history)
-        reward = TBD
+        reward = self.calculate_reward(state, next_state)
         done = True if agent wins / loses
         """
-        pass
+        global rl_action
+        rl_action = action
 
-    def calculate_reward(self, state, next_state):
+        game_state = self.game.game_state
+        history = self.game.history
+        state = (game_state, history)
+
+        self.game.simulate_turn()        
+        i = len(self.game.game_state['players']) - 1
+
+        while i > 0 and self.game.game_state['current_player'].name != self.name:
+            self.game.simulate_turn()   
+
+        next_game_state = self.game.game_state
+        next_history = self.game.history
+        next_state = (next_game_state, next_history)
+
+        reward = self.calculate_reward(state, next_state)
+
+        done = self.name in [p.name for p in self.game.game_state['players']]  
+
+        return (next_state, reward, done)
+
+    def calculate_reward(self, state, next_state, COIN_VALUE=1, CARD_VALUE=10, CARD_DIVERSITY_VALUE=5, WIN_VALUE=100):
         """
         Calculate the reward from going from state to next_state. 
 
         + 1 per change in amount of owned coins
         + 10 per change in amount of opponent's cards
+        - 10 if you lose a card
         + 5 if 2 of the same card is diversified via exchange
         + 100 if win
         - 100 if lose
         """
-        pass
+        game_state, history = state
+        next_game_state, next_history = next_state
+
+        reward = 0
+
+        change_in_coins = next_game_state['player_coins'][self.name] - game_state['player_coins'][self.name]
+        reward += COIN_VALUE * change_in_coins
+
+        change_in_opponents_cards = sum([len(next_game_state['player_cards'][p]) for p in next_game_state['player_cards'].keys() if p != self.name]) - sum([len(game_state['player_cards'][p]) for p in game_state['player_cards'].keys() if p != self.name])
+        change_in_owned_cards = len(next_game_state['player_cards'][self.name]) - len(game_state['player_cards'][self.name])
+
+        reward += -1 * CARD_VALUE * change_in_opponents_cards
+        reward += CARD_VALUE * change_in_owned_cards
+
+        change_in_diversity = len(set(next_game_state['player_cards'][self.name])) - len(set(game_state['player_cards'][self.name]))
+        reward += CARD_DIVERSITY_VALUE * change_in_diversity
+
+        if all([p == self.name for p in next_game_state['player_cards'].keys()]):
+            reward += WIN_VALUE
+        elif self.name not in next_game_state['player_cards'].keys():
+            reward += -1 * WIN_VALUE
+
+        return reward
 
     def reset(self):
         """
@@ -190,4 +261,16 @@ class Environment():
 
         initial_state = (initial_game_state, initial_history)
         """
-        pass
+        players = [Player('Player 1', RL_FUNCS), Player('Player 2', RANDOM_FUNCS), Player('Player 3', RANDOM_FUNCS)]
+        self.game = Game(players)
+
+        initial_game_state = self.game.game_state
+        initial_history = self.game.history
+        initial_state = (initial_game_state, initial_history)
+
+        return initial_state
+    
+def calc_reward(name, state, next_state, COIN_VALUE=1, CARD_VALUE=10, CARD_DIVERSITY_VALUE=5, WIN_VALUE=100):
+    """This is really garbage code, but I'm pretty tired. """
+    temp_env = Environment(name)
+    return temp_env.calculate_reward(state, next_state, COIN_VALUE=COIN_VALUE, CARD_VALUE=CARD_VALUE, CARD_DIVERSITY_VALUE=CARD_DIVERSITY_VALUE, WIN_VALUE=WIN_VALUE)
