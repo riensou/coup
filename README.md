@@ -41,3 +41,4 @@ For a description of the rules, click [here](https://www.ultraboardgames.com/cou
 * Blocking the 'Steal' action is ambiguous, and doesn't force the player to specifically claim 'Captain' or 'Ambassador'
 * Winning a challenge does not cause the player to reshuffle their card back into the deck
 * There is no implementation for a GUI yet
+* RL agents are only trained to be the first player, need to fix cases when they aren't first
