@@ -121,6 +121,9 @@ class QLearningAgent:
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         self.replay_buffer = deque(maxlen=10000)
 
+        self.list_of_actions = []
+        self.did_action_lie = []
+
     def get_action(self, state, name, epsilon):
         game_state, history = state[0], state[1]
 
@@ -211,8 +214,10 @@ def get_rl_decision(model, name):
     agent.model.eval()
     def rl_decision(game_state, history, name):
         action = agent.get_action((game_state, history), name, -1)
+        agent.list_of_actions.append(action)
+        agent.did_action_lie.append((action[2] != 'Income' and action[2] != 'Foreign Aid' and action[2] != 'Coup') and did_action_lie(action[2], game_state['player_cards'][name]))
         return action
-    return rl_decision
+    return rl_decision, agent
 
 class Environment():
     def __init__(self, name, players):

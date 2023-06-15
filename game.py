@@ -10,7 +10,7 @@ class Game():
         self.debug = debug
 
     def initial_gamestate(self, players):
-        assert len(players) < 6
+        assert len(players) <= 6
 
         deck = ROLES * 3
         random.shuffle(deck)
