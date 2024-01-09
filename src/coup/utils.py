@@ -6,6 +6,8 @@ ROLE_BLOCKABLE = {'Income': False, 'Foreign Aid': True, 'Tax': False, 'Steal': T
 ACTION_SENDER = {'Tax': 'Duke', 'Assassinate': 'Assassin', 'Exchange': 'Ambassador', 'Steal': 'Captain'}
 ACTION_BLOCKER = {'Foreign Aid': ['Duke'], 'Steal': ['Ambassador', 'Captain'], 'Assassinate': ['Contessa']}
 
+ROLE_TO_I = {'Duke' : 0, 'Assassin': 1, 'Captain': 2, 'Ambassador': 3, 'Contessa': 4}
+
 # -- Coin Gain -- #
 def income(player_name, player_coins):
     player_coins[player_name] += 1
@@ -23,15 +25,18 @@ def steal(player1_name, player2_name, player_coins):
 # -- Card Loss -- #
 def coup(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths):
     player_coins[player1_name] -= 7
+    if len(player_cards[player2_name]) < 2: card_idx = 0
     lost_card = player_cards[player2_name].pop(card_idx)
     player_deaths[player2_name].append(lost_card)
 
 def assassinate(player1_name, player2_name, player_coins, player_cards, card_idx, player_deaths):
     player_coins[player1_name] -= 3
+    if len(player_cards[player2_name]) < 2: card_idx = 0
     lost_card = player_cards[player2_name].pop(card_idx)
     player_deaths[player2_name].append(lost_card)
 
 def lose_block(player_name, player_cards, card_idx, player_deaths):
+    if len(player_cards[player_name]) < 2: card_idx = 0
     lost_card = player_cards[player_name].pop(card_idx)
     player_deaths[player_name].append(lost_card)
 

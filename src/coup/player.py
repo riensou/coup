@@ -1,4 +1,4 @@
-from utils import *
+from coup.utils import *
 
 import random
 

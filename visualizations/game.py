@@ -1,4 +1,4 @@
-from utils import *
+from coup.utils import *
 import random
 
 # BUGS: payments might not go through if an action is blocked, other edge cases might be weird and still need to be checked

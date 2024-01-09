@@ -1,44 +1,31 @@
 ![coup](https://github.com/riensou/coup/assets/90002238/8c00b7d3-032c-40c7-9ae4-e643c5575e9a)
 
+# Setup
 
-Python implentation of the popular bluffing card game, _Coup_.
+1. Create a conda environment that will contain python 3:
+```
+conda create -n rl_coup python=3.9
+```
 
-For a description of the rules, click [here](https://www.ultraboardgames.com/coup/game-rules.php).
+2. activate the environment (do this every time you open a new terminal and want to run code):
+```
+source activate rl_coup
+```
 
+3. Install the requirements into this conda environment
+```
+cd src
+pip install -r requirements.txt
+```
 
-**Player Descriptions:**
-1. Random
-- all logic functions make completely random choices
-- uses random_dispose, random_keep
+4. Allow your code to be able to see 'coup'
+```
+$ pip install -e .
+```
 
-2. Truth Teller
-- only chooses moves that never bluff based on its own cards
-- uses random_dispose, random_keep
+# Visualizing with Tensorboard
 
-3. User
-- chooses moves based on user input to the terminal
-
-4. Income
-- always takes income or assinates/coups whenever possible
-- uses random_dispose, random_keep
-
-5. Neural Network
-- utilizes Q-learning with a neural network to learn the best decision_fn
-- uses income_block, random_dispose, random_keep
-
-
-**Running the program:**
-1. Create player objects using the various FUNCS from player.py
-2. Put all players into the players list and create the game object.
-3. Run python3 game.py
-
-
-**Model Files Format:**
-"{number of players}-{number of episodes trained on}-{types of opponents}"
-
-
-**Missing Features / Bugs:**
-* Blocking the 'Steal' action is ambiguous, and doesn't force the player to specifically claim 'Captain' or 'Ambassador'
-* Winning a challenge does not cause the player to reshuffle their card back into the deck
-* There is no implementation for a GUI yet
-* RL agents are only trained to be the first player, need to fix cases when they aren't first
+You can visualize your runs using tensorboard:
+```
+tensorboard --logdir data
+```

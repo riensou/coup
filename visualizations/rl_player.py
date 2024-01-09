@@ -6,8 +6,8 @@ from collections import deque
 import random
 import copy
 
-from player import *
-from game import *
+from coup.player import *
+from visualizations.game import *
 
 ROLE_TO_I = {'Duke' : 0, 'Assassin': 1, 'Captain': 2, 'Ambassador': 3, 'Contessa': 4}
 
