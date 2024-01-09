@@ -631,7 +631,7 @@ class Coup(gym.Env):
 
         COIN_VALUE = 0.1
         CARD_VALUE = 1 
-        OPP_CARD_VALUE = -1
+        OPP_CARD_VALUE = -0.5
         CARD_DIVERSITY_VALUE = 5
         WIN_VALUE = 100
 
