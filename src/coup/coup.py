@@ -56,14 +56,19 @@ class Coup(gym.Env):
         options:
         - 'players': specifices the archetypes to be played against
         - 'agent_idx': specifies which player the agent is
+        - 'reward_hyperparameters': specifies the values of features to be rewarded
+            * coins
+            * number of agent's cards
+            * number of opponents' cards
+            * value of winning
 
         example:
         - options = {'players': [Player(f"Player {i+1}", RANDOM_FUNCS) for i in range(self.n)], 'agent_idx': 0}
         """
         if options == None:
-            self.players, self.agent_idx = [Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])) for i in range(self.n)], 0
+            self.players, self.agent_idx, self.reward_hyperparameters = [Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])) for i in range(self.n)], 0, [0.1, 1, -0.5, 100]
         else:
-            self.players, self.agent_idx = options['players'], options['agent_idx']
+            self.players, self.agent_idx, self.reward_hyperparameters = options['players'], options['agent_idx'], options['reward_hyperparameters']
 
         self.game_state = self._initial_gamestate(self.players)
         self.history = []
@@ -627,13 +632,7 @@ class Coup(gym.Env):
 
     
     def _reward(self):
-        # sparse: return 1 if (self.players[self.agent_idx] in self.game_state['players'] and len(self.game_state['players']) == 1) else 0
-
-        COIN_VALUE = 0.1
-        CARD_VALUE = 1 
-        OPP_CARD_VALUE = -0.5
-        CARD_DIVERSITY_VALUE = 5
-        WIN_VALUE = 100
+        COIN_VALUE, CARD_VALUE, OPP_CARD_VALUE, WIN_VALUE = self.reward_hyperparameters
 
         reward = 0
 
