@@ -1,10 +1,13 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+from stable_baselines3 import PPO, A2C, DDPG, TD3, SAC
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
+import random
 
 from coup.utils import *
 from coup.player import *
-import random
 
 class Coup(gym.Env):
     """
@@ -24,7 +27,7 @@ class Coup(gym.Env):
         keep_size = 6 # (4 choose 2)
         ac_dim = action_size + block_1_size + block_2_size + dispose_size + keep_size
 
-        game_state_size = 20 + 11 * n # 20 (cards owned by agent, plus the exchange case) + n (number of coins per player) + 10n (dead cards per player)
+        game_state_size = 20 + 12 * n # 20 (cards owned by agent, plus the exchange case) + n (number of coins per player) + 10n (dead cards per player)
         history_size = (35 + 6 * n) * k # use the last k turns as input
         ob_dim = game_state_size + history_size
 
@@ -45,7 +48,7 @@ class Coup(gym.Env):
         observation = self._observation()
         reward = self._reward()
         terminated = (self.players[self.agent_idx] not in self.game_state['players']) or (len(self.game_state['players']) == 1)
-        truncated = self.i > 500
+        truncated = self.i > 100
         info = {}
         if terminated or truncated:
             info["is_success"] = all(self.players[self.agent_idx].name == p for p in [p.name for p in self.game_state['players']])
@@ -66,7 +69,22 @@ class Coup(gym.Env):
         - options = {'players': [Player(f"Player {i+1}", RANDOM_FUNCS) for i in range(self.n)], 'agent_idx': 0}
         """
         if options == None:
-            self.players, self.agent_idx, self.reward_hyperparameters = [Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])) for i in range(self.n)], 0, [0.1, 1, -0.5, 100]
+            # players = [Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])) for i in range(self.n)]
+
+            with open('recent_model.txt', 'r') as file:
+                recent_model = file.read().strip()
+            algorithm_name = recent_model[recent_model.find('/')+1:recent_model.find('_')]
+            if algorithm_name == "PPO": algorithm = PPO
+            elif algorithm_name == "A2C": algorithm = A2C
+            elif algorithm_name == "DDPG": algorithm = DDPG
+            elif algorithm_name == "TD3": algorithm = TD3
+            elif algorithm_name == "SAC": algorithm = SAC
+            env = DummyVecEnv([lambda: Monitor(Coup())])
+            model = algorithm.load(recent_model, env=env)
+
+            players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
+
+            self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, 1, -0.5, 100]
         else:
             self.players, self.agent_idx, self.reward_hyperparameters = options['players'], options['agent_idx'], options['reward_hyperparameters']
 
@@ -192,8 +210,6 @@ class Coup(gym.Env):
         else:
             exit(1)
 
-        self.i += 1
-
         self._run_game_until_input()
             
     def _run_phase_transition(self):
@@ -262,11 +278,12 @@ class Coup(gym.Env):
             self._simulate_turn()
 
     def _keep_phase_transition(self):
-        if self._decision_is_agent(self.game_state['current_player']): self.history.append(('k', (self.game_state['player_cards'][self.game_state['current_player'].name].copy(), self.current_keep)))
+        self.history.append((f"k{self.players.index(self.game_state['current_player'])}", (self.game_state['player_cards'][self.game_state['current_player'].name].copy(), self.current_keep)))
         self.phase = "action"
         self._simulate_turn()
 
     def _simulate_turn(self):
+        self.i += 1
         players, deck, player_cards, player_deaths, player_coins, current_player = self.game_state.values()
         type = self.current_action[2]
 
@@ -372,14 +389,14 @@ class Coup(gym.Env):
     
     def _encode_gamestate(self):
         """
-        Return an np array of size 20 + 11 * n that encodes the known information about the game state.
+        Return an np array of size 20 + 12 * n that encodes the known information about the game state.
 
         10  : one-hot encoding of the cards owned by the player
         10  : one-hot encoding of the cards in hand via an exchange action
         10n : one-hot encoding of the cards owned by other players
         n   : number of coins owned by all players (divided by 12, the max number of possible coins)
         """
-        encoding = np.zeros((20 + 11 * self.n,))
+        encoding = np.zeros((20 + 12 * self.n,))
 
         players, deck, player_cards, player_deaths, player_coins, current_player = self.game_state.values()
         player_names = list(player_deaths.keys())
@@ -407,6 +424,8 @@ class Coup(gym.Env):
                 encoding[20 + self.n + 10 * i + ROLE_TO_I[player_deaths[player_name][0]]] = 1
             if len(player_deaths[player_name]) > 1:
                 encoding[20 + self.n + 10 * i + 5 + ROLE_TO_I[player_deaths[player_name][1]]] = 1
+        # fill [20+11n : 20+12n] with information about which player you are
+        encoding[20 + 11 * self.n + self.agent_idx] = 1
 
         return encoding
 
@@ -445,10 +464,8 @@ class Coup(gym.Env):
                 event_encoding[4+4*self.n:7+5* self.n] = self._encode_block1_event(event[1])
             elif event[0] == 'b2':
                 event_encoding[7+5*self.n:9+6*self.n] = self._encode_block2_event(event[1])
-            elif event[0] == 'k':
+            elif event[0] == f"k{self.agent_idx}":
                 event_encoding[9+6*self.n:35+6*self.n] = self._encode_keep_event(event[1])
-            else:
-                exit(1)
         return encoding
 
     def _encode_action_event(self, action):
@@ -594,7 +611,12 @@ class Coup(gym.Env):
 
         elif self.phase == "block2":
             a = a[4+3*self.n:6+3*self.n]
-            possible_blocks = generate_all_blocks(player_names[self.agent_idx], self.current_action)
+            block1 = self.current_block1
+            if block1[2]:
+                block1 = (block1[0], player_names[self.agent_idx], 'Lie_Block')
+            else:
+                block1 = (block1[0], player_names[self.agent_idx], 'Role_Block')
+            possible_blocks = generate_all_blocks(player_names[self.agent_idx], block1)
             block2 = None
             while block2 not in possible_blocks:
                 i = np.argmax(a)
