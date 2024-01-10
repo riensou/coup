@@ -84,7 +84,7 @@ class Coup(gym.Env):
 
             players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
 
-            self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, 1, -0.5, 100]
+            self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, 0.3, -0.25, 1]
         else:
             self.players, self.agent_idx, self.reward_hyperparameters = options['players'], options['agent_idx'], options['reward_hyperparameters']
 

@@ -22,7 +22,7 @@ def train(args):
         print("Error: Invalid DRL Algorithm specified")
         return
 
-    id = ''.join(random.choices(string.ascii_letters, k=20))
+    id = ''.join(random.choices(string.ascii_letters, k=6))
 
     full_id = args['algorithm'] + '_' + environment + '_' + id
 
