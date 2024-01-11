@@ -84,7 +84,8 @@ class Coup(gym.Env):
             env = DummyVecEnv([lambda: Monitor(Coup())])
             model = algorithm.load(recent_model, env=env)
 
-            players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
+            # players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
+            players = [Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])) for i in range(self.n)]
             # players = [Player(f"Player {i + 1}", RANDOM_FUNCS) for i in range(self.n)]
 
             self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, -0.05, 1, -0.5, 20]
