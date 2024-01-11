@@ -61,7 +61,8 @@ class Coup(gym.Env):
         - 'players': specifices the archetypes to be played against
         - 'agent_idx': specifies which player the agent is
         - 'reward_hyperparameters': specifies the values of features to be rewarded
-            * coins
+            * number of agent's coins
+            * number of opponents' coins
             * number of agent's cards
             * number of opponents' cards
             * value of winning
@@ -85,7 +86,7 @@ class Coup(gym.Env):
 
             players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
 
-            self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, 0.3, -0.25, 1]
+            self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, -0.05, 1, -0.5, 20]
         else:
             self.players, self.agent_idx, self.reward_hyperparameters = options['players'], options['agent_idx'], options['reward_hyperparameters']
 
@@ -659,11 +660,12 @@ class Coup(gym.Env):
 
     
     def _reward(self):
-        COIN_VALUE, CARD_VALUE, OPP_CARD_VALUE, WIN_VALUE = self.reward_hyperparameters
+        COIN_VALUE, OPP_COIN_VALUE, CARD_VALUE, OPP_CARD_VALUE, WIN_VALUE = self.reward_hyperparameters
 
         reward = 0
 
         reward += COIN_VALUE * self.game_state['player_coins'][self.players[self.agent_idx].name]
+        reward += OPP_COIN_VALUE * sum([self.game_state['player_coins'][self.players[i].name] for i in range(self.n) if i != self.agent_idx])
         reward += CARD_VALUE * len(self.game_state['player_cards'][self.players[self.agent_idx].name])
         reward += OPP_CARD_VALUE * sum([len(self.game_state['player_cards'][self.players[i].name]) for i in range(self.n) if i != self.agent_idx])
         if all(self.players[self.agent_idx].name == p for p in [p.name for p in self.game_state['players']]):
