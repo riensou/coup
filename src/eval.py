@@ -32,7 +32,7 @@ def eval(args):
         total_return = 0
         archetype, name = archetypes
         for _ in range(args['eval_episodes']):
-            obs, _ = env.reset(options = {'players': [Player(f"Player {i+1}", archetype) for i in range(4)], 'agent_idx': 1, 'reward_hyperparameters': [0.1, 0.3, -0.25, 1]})
+            obs, _ = env.reset(options = {'players': [Player(f"Player {i+1}", archetype) for i in range(4)], 'agent_idx': 1, 'reward_hyperparameters': [0.1, -0.05, 1, -0.5, 20]})
             done = False
             while not done:
                 action, _ = model.predict(obs)

@@ -85,6 +85,7 @@ class Coup(gym.Env):
             model = algorithm.load(recent_model, env=env)
 
             players = [random.choice([Player(f"Player {i+1}", random.choice([RANDOM_FUNCS, TRUTH_FUNCS, GREEDY_FUNCS, INCOME_FUNCS])), SelfPlayer(f"Player {i+1}", SELF_FUNCS, model, i, self.n, self.k)]) for i in range(self.n)]
+            # players = [Player(f"Player {i + 1}", RANDOM_FUNCS) for i in range(self.n)]
 
             self.players, self.agent_idx, self.reward_hyperparameters = players, random.choice(list(range(self.n))), [0.1, -0.05, 1, -0.5, 20]
         else:
@@ -446,10 +447,10 @@ class Coup(gym.Env):
         self.history is stored as the following:
         [('a', action), ('b1', block1), ('a', action), ('b1', block1), ('k', keep), ...]
 
-        action : ( sender, reciever   , action_type     )
-        block1 : ( sender, not accept?, refute or block )
-        block2 : ( sender, not accept?, refute          )
-        keep   : ( cards , card_idxs                    )
+        action : ( sender, reciever   , action_type      )
+        block1 : ( sender, not accept?, dispute or block )
+        block2 : ( sender, not accept?, dispute          )
+        keep   : ( cards , card_idxs                     )
 
         Note: dispose is not a relevant action to store in the memory. 
         Note: keeps are only stored for the agent
@@ -598,6 +599,8 @@ class Coup(gym.Env):
                 action = (player_names[self.agent_idx], reciever, type)
             self.current_action = action
             self.agent_actions.append(type)
+            if type not in ['Income', 'Foreign Aid', 'Coup']:
+                self.agent_bluffs.append([type, did_action_lie(type, self.game_state['player_cards'][player_names[self.agent_idx]])])
 
 
         elif self.phase == "block1":
@@ -614,6 +617,14 @@ class Coup(gym.Env):
                 if i == 2: # block
                     block1 = (player_names[self.agent_idx], True, False)
             self.current_block1 = block1
+            if not block1[1]:
+                self.agent_blocks.append('accept')
+            else:
+                if block1[2]:
+                    self.agent_blocks.append('dispute')
+                else:
+                    self.agent_blocks.append('block')
+                    self.agent_bluffs.append(['Role_Block', did_block_1_lie(self.current_action[2], self.game_state['player_cards'][player_names[self.agent_idx]])])
 
         elif self.phase == "block2":
             a = a[4+3*self.n:6+3*self.n]
@@ -632,12 +643,18 @@ class Coup(gym.Env):
                 if i == 1: # dispute
                     block2 = (player_names[self.agent_idx], True, True)  
             self.current_block2 = block2
+            if block2[1]:
+                self.agent_blocks.append('dispute')
+            else:
+                self.agent_blocks.append('accept')
 
         elif self.phase == "dispose":
             a = a[6+3*self.n:8+3*self.n]
             i = np.argmax(a)
             if len(self.game_state['player_deaths'][player_names[self.agent_idx]]) > 0: i = 0
             self.current_dispose.append((self.players[self.agent_idx], i))
+            if len(self.game_state['player_deaths'][player_names[self.agent_idx]]) > 0:
+                self.agent_disposes.append(self.game_state['player_cards'][player_names[self.agent_idx]][i])
 
         elif self.phase == "keep":
             a = a[8+3*self.n:14+3*self.n]
@@ -645,6 +662,7 @@ class Coup(gym.Env):
                 i = np.argmax(a[0:3])
                 idx_to_keep = {0: [0], 1: [1], 2: [2]}
                 self.current_keep = idx_to_keep[i]
+                self.agent_keeps.append(self.game_state['player_cards'][player_names[self.agent_idx]][idx_to_keep[i][0]])
             else:
                 i = np.argmax(a)
                 idx_to_keep = {0: [0, 1],
@@ -654,6 +672,8 @@ class Coup(gym.Env):
                                4: [1, 3],
                                5: [2, 3]}
                 self.current_keep = idx_to_keep[i]
+                self.agent_keeps.append(self.game_state['player_cards'][player_names[self.agent_idx]][idx_to_keep[i][0]])
+                self.agent_keeps.append(self.game_state['player_cards'][player_names[self.agent_idx]][idx_to_keep[i][1]])
 
         else:
             exit(1)
@@ -687,31 +707,42 @@ class Coup(gym.Env):
         info["assassinate_actions"] = self.agent_actions.count('Assassinate')
         info["exchange_actions"] = self.agent_actions.count('Exchange')
 
-        # # blocks
-        # info["accept_blocks"] = ...
-        # info["refute_blocks"] = ...
-        # info["block_blocks"] = ...
+        # blocks
+        info["accept_blocks"] = self.agent_blocks.count('accept')
+        info["dispute_blocks"] = self.agent_blocks.count('dispute')
+        info["block_blocks"] = self.agent_blocks.count('block')
 
-        # # disposes
-        # info["duke_disposes"] = ...
-        # info["assassin_disposes"] = ...
-        # info["captain_disposes"] = ...
-        # info["ambassador_disposes"] = ...
-        # info["contessa_disposes"] = ...
+        # disposes
+        info["duke_disposes"] = self.agent_disposes.count('Duke')
+        info["assassin_disposes"] = self.agent_disposes.count('Assassin')
+        info["captain_disposes"] = self.agent_disposes.count('Captain')
+        info["ambassador_disposes"] = self.agent_disposes.count('Ambassador')
+        info["contessa_disposes"] = self.agent_disposes.count('Contessa')
 
-        # # keeps
-        # info["duke_keeps"] = ...
-        # info["assassin_keeps"] = ...
-        # info["captain_keeps"] = ...
-        # info["ambassador_keeps"] = ...
-        # info["contessa_keeps"] = ...
+        # keeps
+        info["duke_keeps"] = self.agent_keeps.count('Duke')
+        info["assassin_keeps"] = self.agent_keeps.count('Assassin')
+        info["captain_keeps"] = self.agent_keeps.count('Captain')
+        info["ambassador_keeps"] = self.agent_keeps.count('Ambassador')
+        info["contessa_keeps"] = self.agent_keeps.count('Contessa')
 
-        # # bluffs
-        # info["total_bluffs"] = ...
-        # info["tax_bluffs"] = ...
-        # info["steal_bluffs"] = ...
-        # info["assassinate_bluffs"] = ...
-        # info["exchange_bluffs"] = ...
-        # info["block_bluffs"] = ...
+        # bluffs
+        info["total_bluffs"] = len([move for move in self.agent_bluffs if move[1]])
+        info["total_truths"] = len([move for move in self.agent_bluffs if not move[1]])
+
+        info["tax_bluffs"] = len([move for move in self.agent_bluffs if move[1] and move[0] == 'Tax'])
+        info["tax_truths"] = len([move for move in self.agent_bluffs if not move[1] and move[0] == 'Tax'])
+
+        info["steal_bluffs"] = len([move for move in self.agent_bluffs if move[1] and move[0] == 'Steal'])
+        info["steal_truths"] = len([move for move in self.agent_bluffs if not move[1] and move[0] == 'Steal'])
+
+        info["assassinate_bluffs"] = len([move for move in self.agent_bluffs if move[1] and move[0] == 'Assassinate'])
+        info["assassinate_truths"] = len([move for move in self.agent_bluffs if not move[1] and move[0] == 'Assassinate'])
+
+        info["exchange_bluffs"] = len([move for move in self.agent_bluffs if move[1] and move[0] == 'Exchange'])
+        info["exchange_truths"] = len([move for move in self.agent_bluffs if not move[1] and move[0] == 'Exchange'])
+
+        info["block_bluffs"] = len([move for move in self.agent_bluffs if move[1] and move[0] == 'Role_Block'])
+        info["block_truths"] = len([move for move in self.agent_bluffs if not move[1] and move[0] == 'Role_Block'])
 
         return info
