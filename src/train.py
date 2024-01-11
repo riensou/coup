@@ -5,6 +5,7 @@ import string
 import argparse
 
 from coup.coup import Coup
+from coup.logger import TensorboardCallback
 
 from stable_baselines3 import PPO, A2C, DDPG, TD3, SAC
 from stable_baselines3.common.monitor import Monitor
@@ -40,7 +41,7 @@ def train(args):
     model = algorithm("MlpPolicy", train_env, verbose=1, tensorboard_log=logdir if args["log"] else None)
 
     for i in range(1, args['num_iters']):
-        model.learn(total_timesteps=args['steps_per_iter'], reset_num_timesteps=False, tb_log_name=full_id)
+        model.learn(total_timesteps=args['steps_per_iter'], reset_num_timesteps=False, tb_log_name=full_id, callback=TensorboardCallback())
         if args["log"]:
             model.save(f"{models_dir}/{args['steps_per_iter']*i}")
             with open('recent_model.txt', 'w') as file:

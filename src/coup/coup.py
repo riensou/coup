@@ -51,7 +51,8 @@ class Coup(gym.Env):
         truncated = self.i > 100
         info = {}
         if terminated or truncated:
-            info["is_success"] = all(self.players[self.agent_idx].name == p for p in [p.name for p in self.game_state['players']])
+            info = self._log_rates(info)
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
@@ -91,6 +92,8 @@ class Coup(gym.Env):
         self.game_state = self._initial_gamestate(self.players)
         self.history = []
         self.phase = "action"
+    
+        self.agent_actions, self.agent_blocks, self.agent_disposes, self.agent_keeps, self.agent_bluffs = [], [], [], [], []
         self.i = 0
 
         self._run_game_until_input()
@@ -593,6 +596,8 @@ class Coup(gym.Env):
                     reciever = player_names[self.agent_idx]
                 action = (player_names[self.agent_idx], reciever, type)
             self.current_action = action
+            self.agent_actions.append(type)
+
 
         elif self.phase == "block1":
             a = a[1+3*self.n:4+3*self.n]
@@ -667,3 +672,44 @@ class Coup(gym.Env):
             reward += -1 * WIN_VALUE
 
         return reward
+    
+    def _log_rates(self, info):
+        info["is_success"] = all(self.players[self.agent_idx].name == p for p in [p.name for p in self.game_state['players']])
+
+        # actions
+        info["income_actions"] = self.agent_actions.count('Income')
+        info["foreign_aid_actions"] = self.agent_actions.count('Foreign Aid')
+        info["tax_actions"] = self.agent_actions.count('Tax')
+        info["steal_actions"] = self.agent_actions.count('Steal')
+        info["coup_actions"] = self.agent_actions.count('Coup')
+        info["assassinate_actions"] = self.agent_actions.count('Assassinate')
+        info["exchange_actions"] = self.agent_actions.count('Exchange')
+
+        # # blocks
+        # info["accept_blocks"] = ...
+        # info["refute_blocks"] = ...
+        # info["block_blocks"] = ...
+
+        # # disposes
+        # info["duke_disposes"] = ...
+        # info["assassin_disposes"] = ...
+        # info["captain_disposes"] = ...
+        # info["ambassador_disposes"] = ...
+        # info["contessa_disposes"] = ...
+
+        # # keeps
+        # info["duke_keeps"] = ...
+        # info["assassin_keeps"] = ...
+        # info["captain_keeps"] = ...
+        # info["ambassador_keeps"] = ...
+        # info["contessa_keeps"] = ...
+
+        # # bluffs
+        # info["total_bluffs"] = ...
+        # info["tax_bluffs"] = ...
+        # info["steal_bluffs"] = ...
+        # info["assassinate_bluffs"] = ...
+        # info["exchange_bluffs"] = ...
+        # info["block_bluffs"] = ...
+
+        return info
